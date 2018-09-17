@@ -14,9 +14,10 @@ for v in vegBurger:
    print("resturant is " + v.resturant.name +" price is: " + v.price)
 
 print("AFTER UPDATE!!")
-vegBurger.price = "$2.99"
-session.add(vegBurger)
-session.commit()
 for v in vegBurger:
+   if v.price !='$2.99':
+      v.price = '$2.99'
+      session.add(v)
+      session.commit()
    print("resturant is " + v.resturant.name +" price is: " + v.price)
 
