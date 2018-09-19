@@ -13,8 +13,6 @@ session = DBsession()
 
 class webServerHandler(BaseHTTPRequestHandler):
 
-
-
     def do_GET(self):
 
         try:
@@ -53,8 +51,8 @@ class webServerHandler(BaseHTTPRequestHandler):
                 results = session.query(Resturant).all()
 
                 for r in results:
-                    output += str(r.name) + "<br><a href=/resturant/delete> delete </a>"
-                    output += "<br><a href=/resturant/"+str(r.id)+"/edit> edit </a><br><br>"
+                    output += str(r.name) + "<br><a href=/resturant/%s/delete> delete </a>" % str(r.id)
+                    output += "<br><a href=/resturant/%s/edit> edit </a><br><br>" % str(r.id)
 
                 self.wfile.write(output.encode())
                 print (output)
@@ -73,30 +71,31 @@ class webServerHandler(BaseHTTPRequestHandler):
 
             if self.path.endswith("/edit"):
                 path = urlparse(self.path)
+                split = path.path.split("/")
+                editResturant = session.query(Resturant).get(split[2])
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
                 output = ""
                 output += "<!DOCTYPE html><title>Edit Restaurant</title>"
-                output += '''<form method='POST' action='%s'><h2>Make an edit Restaurant</h2><input name="message" type="text" placeholder="edit Resturant Name" ><input type="submit" value="edit"> </form>''' % path.path
+                output += '''<form method='POST' action='%s'><h2>edit %s </h2><input name="message" type="text" placeholder="%s" ><input type="submit" value="Rename"> </form>''' % (path.path, editResturant.name , editResturant.name)
                 self.wfile.write(output.encode())
                 print (output)
                 return
 
             if self.path.endswith("/delete"):
+                path = urlparse(self.path)
+                split = path.path.split("/")
+                editResturant = session.query(Resturant).get(split[2])
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
                 output = ""
-                output += "<!DOCTYPE html><title>Bookmark Server</title>"
-                output += '''<form method='POST' action='/resturant/delete'><h2>delete a Restaurant</h2><input name="message" type="text" placeholder="Delete Resturant Name" ><input type="submit" value="Create"> </form>'''
+                output += "<!DOCTYPE html><title>delete</title>"
+                output += '''<form method='POST' action='%s'><h2>Are you sure you want to delete %s</h2><input type="submit" value="DELETE"> </form>''' % (path.path, editResturant.name)
                 self.wfile.write(output.encode())
                 print (output)
                 return
-
-
-
-
 
         except IOError:
             self.send_response(404)
@@ -129,9 +128,7 @@ class webServerHandler(BaseHTTPRequestHandler):
             if self.path.endswith("/edit"):
                 print("YOU ARE IN EDITTT")
                 path = urlparse(self.path)
-                print("print path: " +str(path))
                 split = path.path.split("/")
-                print("split : "+ str(split))
                 #get length of new content
                 length = int(self.headers.get('Content-length'))
                 #gather the body html and decode
@@ -142,7 +139,7 @@ class webServerHandler(BaseHTTPRequestHandler):
                 params = parse_qs(body)
 
                 editResturant = session.query(Resturant).get(split[2]) # edit a resturant
-                print("edit resturant is: " + str(editResturant))
+                print("edit resturant is: " + str(editResturant.name))
 
                 editResturant.name = params["message"][0]
                 session.add(editResturant)#add to staging
@@ -151,13 +148,27 @@ class webServerHandler(BaseHTTPRequestHandler):
                 self.send_header('Location', '/restaurants')
                 self.end_headers()
 
-                #debug
-                print(output)
+            if self.path.endswith("/delete"):
+                print("YOU ARE IN DELETE")
+                path = urlparse(self.path)
+                split = path.path.split("/")
+                resDelete = session.query(Resturant).get(split[2])
+                session.delete(resDelete)
+                session.commit()
+
+                self.send_response(301)
+                self.send_header('Location', '/restaurants')
+                self.end_headers()
+                print ("DELETE COMPLETE")
 
         except:
+            self.send_response(404)
+
+    def do_DELETE(self):
+        try:
             pass
-
-
+        except:
+            self.send_response(404)
 
 
 def main():
